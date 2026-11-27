@@ -16,8 +16,14 @@ const repoRoot = fileURLToPath(new URL('.', import.meta.url));
 const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
 // Start from a clean output directory so a stale file can never leak into the entry.
-rmSync(outputDir, { recursive: true, force: true });
+// Clear only the outputs this program writes, never the directory itself: in the
+// grader the output directory is a mount the entry runs as an unprivileged user and
+// cannot remove (rmSync on it fails EPERM and exits 1). Removing only known names
+// also avoids touching anything else that may share the directory.
 mkdirSync(outputDir, { recursive: true });
+for (const name of ['game', 'screenshots', 'dossier.json']) {
+  rmSync(join(outputDir, name), { recursive: true, force: true });
+}
 
 // The playable game: plain static files under game/.
 cpSync(join(repoRoot, 'game'), join(outputDir, 'game'), { recursive: true });
